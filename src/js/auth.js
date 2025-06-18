@@ -1,4 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
+    checkAuthOnLoad();
+
+    // Auth modal tab switching
+    document.getElementById('show-login').onclick = () => {
+        document.getElementById('login-form').style.display = '';
+        document.getElementById('register-form').style.display = 'none';
+        document.getElementById('show-login').classList.add('active');
+        document.getElementById('show-register').classList.remove('active');
+    };
+    document.getElementById('show-register').onclick = () => {
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('register-form').style.display = '';
+        document.getElementById('show-login').classList.remove('active');
+        document.getElementById('show-register').classList.add('active');
+    };
+
     // Register
     document.getElementById('register-btn').onclick = async () => {
         const username = document.getElementById('register-username').value.trim();
@@ -13,26 +29,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Check if username exists
         const snapshot = await firebase.database().ref('users').orderByChild('username').equalTo(username).once('value');
         if (snapshot.exists()) {
             document.getElementById('register-error').textContent = 'Username is already taken.';
             return;
         }
 
-        // Store user with plain text password (for demo purposes)
         const newUserRef = firebase.database().ref('users').push();
         await newUserRef.set({
             username: username,
-            password: password,
-            countriesUnlocked: 1
+            password: password
         });
 
-        // Save session
         localStorage.setItem('wt_user', JSON.stringify({ username, userKey: newUserRef.key }));
 
         document.getElementById('register-error').textContent = '';
-        showApp();
+        onAuthSuccess();
+        location.reload();
     };
 
     // Login
@@ -56,70 +69,109 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Save session
         localStorage.setItem('wt_user', JSON.stringify({ username, userKey }));
 
         document.getElementById('login-error').textContent = '';
-        showApp();
+        onAuthSuccess();
+        location.reload();
     };
 
-    // Logout (in settings)
-    document.getElementById('logout-btn').onclick = async () => {
-        localStorage.removeItem('wt_user');
-        showAuth();
-    };
+    // Settings actions
+    if (document.getElementById('settings-logout-btn')) {
+        document.getElementById('settings-logout-btn').onclick = () => {
+            localStorage.removeItem('wt_user');
+            showAuthOnly();
+            document.getElementById('settings-modal').classList.remove('active');
+        };
+    }
 
-    // Show change password area
-    document.getElementById('change-password-btn').onclick = () => {
-        document.getElementById('change-password-area').style.display = 'block';
-        document.getElementById('change-password-error').textContent = '';
-        document.getElementById('change-password-success').textContent = '';
-    };
+    if (document.getElementById('change-username-btn')) {
+        document.getElementById('change-username-btn').onclick = async () => {
+            const newUsername = document.getElementById('settings-username').value.trim();
+            if (!newUsername.match(/^[a-zA-Z0-9_]+$/)) {
+                document.getElementById('settings-error').textContent = 'Invalid username.';
+                document.getElementById('settings-message').textContent = '';
+                return;
+            }
+            const userKey = getCurrentUserKey();
+            const snapshot = await firebase.database().ref('users').orderByChild('username').equalTo(newUsername).once('value');
+            if (snapshot.exists()) {
+                document.getElementById('settings-error').textContent = 'Username already taken.';
+                document.getElementById('settings-message').textContent = '';
+                return;
+            }
+            await firebase.database().ref('users/' + userKey + '/username').set(newUsername);
+            let user = JSON.parse(localStorage.getItem('wt_user'));
+            user.username = newUsername;
+            localStorage.setItem('wt_user', JSON.stringify(user));
+            document.getElementById('settings-message').textContent = 'Username changed!';
+            document.getElementById('settings-error').textContent = '';
+        };
+    }
 
-    // Change password
-    document.getElementById('confirm-change-password-btn').onclick = async () => {
-        const oldPassword = document.getElementById('old-password').value;
-        const newPassword = document.getElementById('new-password').value;
-        const user = JSON.parse(localStorage.getItem('wt_user'));
-        if (!user || !user.userKey) return;
+    if (document.getElementById('change-password-btn')) {
+        document.getElementById('change-password-btn').onclick = async () => {
+            const newPassword = document.getElementById('settings-password').value;
+            if (newPassword.length < 6) {
+                document.getElementById('settings-error').textContent = 'Password too short.';
+                document.getElementById('settings-message').textContent = '';
+                return;
+            }
+            const userKey = getCurrentUserKey();
+            await firebase.database().ref('users/' + userKey + '/password').set(newPassword);
+            document.getElementById('settings-message').textContent = 'Password changed!';
+            document.getElementById('settings-error').textContent = '';
+        };
+    }
 
-        const userRef = firebase.database().ref('users/' + user.userKey);
-        const snapshot = await userRef.once('value');
-        const userData = snapshot.val();
-
-        if (oldPassword !== userData.password) {
-            document.getElementById('change-password-error').textContent = 'Old password is incorrect.';
-            document.getElementById('change-password-success').textContent = '';
-            return;
-        }
-        if (newPassword.length < 6) {
-            document.getElementById('change-password-error').textContent = 'New password must be at least 6 characters.';
-            document.getElementById('change-password-success').textContent = '';
-            return;
-        }
-
-        await userRef.update({ password: newPassword });
-
-        document.getElementById('change-password-error').textContent = '';
-        document.getElementById('change-password-success').textContent = 'Password changed successfully!';
-        document.getElementById('old-password').value = '';
-        document.getElementById('new-password').value = '';
-    };
-
-    // Delete account
-    document.getElementById('delete-account-btn').onclick = async () => {
-        if (!confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
-        const user = JSON.parse(localStorage.getItem('wt_user'));
-        if (!user || !user.userKey) return;
-        await firebase.database().ref('users/' + user.userKey).remove();
-        localStorage.removeItem('wt_user');
-        showAuth();
-    };
+    if (document.getElementById('delete-account-btn')) {
+        document.getElementById('delete-account-btn').onclick = async () => {
+            if (!confirm('Are you sure you want to delete your account? This cannot be undone.')) return;
+            const userKey = getCurrentUserKey();
+            await firebase.database().ref('users/' + userKey).remove();
+            localStorage.removeItem('wt_user');
+            showAuthOnly();
+            document.getElementById('settings-modal').classList.remove('active');
+        };
+    }
 });
 
-// Helper to get current user key
 function getCurrentUserKey() {
     const user = JSON.parse(localStorage.getItem('wt_user'));
     return user && user.userKey ? user.userKey : null;
 }
-window.getCurrentUserKey
+window.getCurrentUserKey = getCurrentUserKey;
+
+function checkAuthOnLoad() {
+    const user = JSON.parse(localStorage.getItem('wt_user'));
+    if (!user || !user.userKey) {
+        showAuthOnly();
+    } else {
+        onAuthSuccess();
+    }
+}
+
+function showAuthOnly() {
+    document.getElementById('auth-modal').classList.add('active');
+    document.getElementById('game-ui').classList.remove('active');
+    document.getElementById('starter-country-modal').classList.remove('active');
+}
+
+function onAuthSuccess() {
+    document.getElementById('auth-modal').classList.remove('active');
+    document.getElementById('game-ui').classList.add('active');
+    if (!window.mapInitialized) {
+        window.mapInitialized = true;
+        if (typeof startGame === "function") startGame();
+    }
+    // Always check the database for starter country
+    loadGameState((game) => {
+        if (!game || !game.starterCountry) {
+            // No starter country chosen, show modal
+            showStarterCountryModal();
+        } else {
+            // Starter country exists, hide modal if open
+            document.getElementById('starter-country-modal').classList.remove('active');
+        }
+    });
+}

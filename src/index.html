@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,65 +14,99 @@
     <script src="js/auth.js"></script>
     <script src="js/game.js"></script>
     <script src="js/leaderboard.js"></script>
+    <script src="js/ui.js"></script>
     <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
 </head>
+
 <body>
-    <!-- Fullscreen Map -->
-    <div id="map"></div>
-
-    <!-- Top-left Counters -->
-    <div id="game-info">
-        <div class="counter-box">
-            <span>💰</span> <span id="money">0</span>
-        </div>
-        <div class="counter-box">
-            <span>👥</span> <span id="population">0</span>
-        </div>
-    </div>
-
-    <!-- Floating Manage Industries Button -->
-    <button id="floating-industries-btn">
-        Manage Industries
-    </button>
-
-    <!-- Popup Modal -->
-    <div id="country-popup" class="modal" style="display:none;">
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal">
         <div class="modal-content">
-            <span id="close-popup" class="close">&times;</span>
-            <div id="popup-content"></div>
+            <div id="auth-tabs">
+                <button id="show-login" class="button active">Login</button>
+                <button id="show-register" class="button">Register</button>
+            </div>
+            <div id="login-form">
+                <h3>Login</h3>
+                <input type="text" id="login-username" placeholder="Username"><br>
+                <input type="password" id="login-password" placeholder="Password"><br>
+                <button id="login-btn" class="button">Login</button>
+                <p id="login-error" style="color:red;"></p>
+            </div>
+            <div id="register-form" style="display:none;">
+                <h3>Register</h3>
+                <input type="text" id="register-username" placeholder="Username"><br>
+                <input type="password" id="register-password" placeholder="Password"><br>
+                <button id="register-btn" class="button">Register</button>
+                <p id="register-error" style="color:red;"></p>
+            </div>
         </div>
     </div>
 
-    <!-- Starter Country Choice Modal -->
-    <div id="starter-country-modal" class="modal" style="display:none;">
+    <!-- Game UI -->
+    <div id="game-ui">
+        <div id="map"></div>
+        <div id="game-info">
+            <div class="counter-box">
+                <span>💰</span> <span id="money">0</span>
+            </div>
+            <div class="counter-box">
+                <span>👥</span> <span id="population">0</span>
+            </div>
+        </div>
+        <button id="floating-industries-btn">Manage Industries</button>
+        <div id="country-popup" class="modal">
+            <div class="modal-content">
+                <span id="close-popup" class="close">&times;</span>
+                <div id="popup-content"></div>
+            </div>
+        </div>
+        <nav id="bottom-nav">
+            <button id="nav-leaderboard" class="button">Leaderboard</button>
+            <button id="nav-settings" class="button">Settings</button>
+        </nav>
+    </div>
+
+    <!-- Starter Country Modal -->
+    <div id="starter-country-modal" class="modal">
         <div class="modal-content">
             <h3>Choose Your Starting Country</h3>
             <div id="starter-country-options"></div>
         </div>
     </div>
 
-    <!-- Bottom Navigation Bar -->
-    <nav id="bottom-nav">
-        <button id="nav-game" class="button">Game</button>
-        <button id="nav-leaderboard" class="button">Leaderboard</button>
-        <button id="nav-settings" class="button">Settings</button>
-        <button id="nav-logout" class="button" style="background:#dc3545;">Logout</button>
-    </nav>
-    <script>
-        // Navigation bar handlers
-        document.getElementById('nav-game').onclick = () => {
-            // Could close popups or focus map if needed
-        };
-        document.getElementById('nav-leaderboard').onclick = () => {
-            alert("Leaderboard coming soon!");
-        };
-        document.getElementById('nav-settings').onclick = () => {
-            alert("Settings coming soon!");
-        };
-        document.getElementById('nav-logout').onclick = () => {
-            localStorage.removeItem('wt_user');
-            location.reload();
-        };
-    </script>
+    <!-- Leaderboard Modal -->
+    <div id="leaderboard-modal" class="modal">
+        <div class="modal-content">
+            <span id="close-leaderboard" class="close">&times;</span>
+            <h3>Leaderboard</h3>
+            <ul id="leaderboard"></ul>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="modal">
+        <div class="modal-content">
+            <span id="close-settings" class="close">&times;</span>
+            <h3>Account Settings</h3>
+            <div>
+                <input type="text" id="settings-username" placeholder="New Username">
+                <button id="change-username-btn" class="button">Change Username</button>
+            </div>
+            <div>
+                <input type="password" id="settings-password" placeholder="New Password">
+                <button id="change-password-btn" class="button">Change Password</button>
+            </div>
+            <div>
+                <button id="delete-account-btn" class="button" style="background:#dc3545;">Delete Account</button>
+            </div>
+            <div>
+                <button id="settings-logout-btn" class="button" style="background:#888;">Logout</button>
+            </div>
+            <p id="settings-message" style="color:lime;"></p>
+            <p id="settings-error" style="color:red;"></p>
+        </div>
+    </div>
 </body>
+
 </html>

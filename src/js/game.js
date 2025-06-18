@@ -101,9 +101,20 @@ function saveGameState() {
 
 function loadGameState(callback) {
     const userKey = window.getCurrentUserKey && window.getCurrentUserKey();
-    if (!userKey) return callback(null);
+    if (!userKey) {
+        if (callback) callback(null);
+        return;
+    }
     firebase.database().ref('users/' + userKey + '/game').once('value').then(snapshot => {
-        callback(snapshot.val());
+        const game = snapshot.val();
+        if (game) {
+            money = game.money || 100;
+            population = game.population || 10;
+            starterCountryId = game.starterCountry || null;
+            unlocked = game.unlocked || [];
+            industries = game.industries || {};
+        }
+        if (callback) callback(game);
     });
 }
 
@@ -111,7 +122,6 @@ function canUnlock(country) {
     return country.requires.every(req => unlocked.includes(req));
 }
 
-// INDUSTRY SYSTEM
 function getAvailableIndustries(countryId) {
     return industryTypes.filter(ind => ind.unlocksIn.includes(countryId));
 }
@@ -290,7 +300,7 @@ window.unlockCountry = function(id) {
 
 function updateMapboxLayer() {
     if (!window.map) return;
-    if (!window.map.getLayer('country-highlight')) return; // Prevent error if layer not loaded
+    if (!window.map.getLayer('country-highlight')) return;
     const unlockedCodes = unlocked;
     const unlockableCodes = getUnlockableCountryCodes();
 
@@ -302,23 +312,20 @@ function updateMapboxLayer() {
     ]);
 }
 
+// Show starter country modal
 function showStarterCountryModal() {
     const modal = document.getElementById('starter-country-modal');
-    const options = document.getElementById('starter-country-options');
-    options.innerHTML = '';
-    allCountries.filter(c => c.price === 0).forEach(country => {
-        const div = document.createElement('div');
-        div.style.margin = '15px 0';
-        div.innerHTML = `
-            <strong>${country.name}</strong><br>
-            <span>${country.buff}</span><br>
-            <button class="button" onclick="chooseStarterCountry('${country.id}')">Choose</button>
-        `;
-        options.appendChild(div);
-    });
-    modal.style.display = 'block';
+    const optionsDiv = document.getElementById('starter-country-options');
+    optionsDiv.innerHTML = `
+        <button class="button" onclick="chooseStarterCountry('FRA')">France 🇫🇷</button>
+        <button class="button" onclick="chooseStarterCountry('DEU')">Germany 🇩🇪</button>
+        <button class="button" onclick="chooseStarterCountry('ITA')">Italy 🇮🇹</button>
+    `;
+    modal.classList.add('active');
 }
+window.showStarterCountryModal = showStarterCountryModal;
 
+// Choose starter country
 window.chooseStarterCountry = function(id) {
     starterChosen = true;
     starterCountryId = id;
@@ -348,8 +355,8 @@ window.chooseStarterCountry = function(id) {
     }
 
     updateGameInfo();
-    updateMapboxLayer();
-    document.getElementById('starter-country-modal').style.display = 'none';
+    updateMapboxLayer && updateMapboxLayer();
+    document.getElementById('starter-country-modal').classList.remove('active');
     saveGameState();
 
     if (populationInterval) clearInterval(populationInterval);
@@ -371,7 +378,7 @@ function startPopulationGrowthAndIncome() {
     }, 3000);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function startGame() {
     updateGameInfo();
 
     loadGameState((game) => {
@@ -404,8 +411,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateGameInfo();
             updateMapboxLayer();
             startPopulationGrowthAndIncome();
-        } else {
-            showStarterCountryModal();
         }
     });
 
@@ -482,4 +487,4 @@ document.addEventListener('DOMContentLoaded', () => {
             showManageIndustries(selectedCountry);
         }
     };
-});
+}

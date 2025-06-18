@@ -86,11 +86,23 @@ html, body {
 }
 
 .modal {
-    display: block;
+    display: none;
     position: fixed;
     z-index: 1002;
     left: 0; top: 0; width: 100vw; height: 100vh;
     background: rgba(0,0,0,0.5);
+}
+.modal.active {
+    display: block;
+}
+#auth-modal {
+    z-index: 3000;
+}
+#game-ui {
+    display: none;
+}
+#game-ui.active {
+    display: block;
 }
 .modal-content {
     background: #232323;
