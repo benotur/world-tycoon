@@ -290,6 +290,7 @@ window.unlockCountry = function(id) {
 
 function updateMapboxLayer() {
     if (!window.map) return;
+    if (!window.map.getLayer('country-highlight')) return; // Prevent error if layer not loaded
     const unlockedCodes = unlocked;
     const unlockableCodes = getUnlockableCountryCodes();
 
